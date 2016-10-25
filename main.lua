@@ -6,7 +6,7 @@ shootDelay = 0.4
 lastShot = 0
 enemies = {}
 bullets = {}
-upgrade = {}
+powerUps = {}
 movementSpeed = 500
 screen = { width = 800, height = 600, flags = nil}
 success = love.window.setMode( screen.width, screen.height, screen.flags )
@@ -14,16 +14,17 @@ love.window.setTitle( "title" )
 
 -- Load some default values for our rectangle.
 function love.load()
-	love.graphics.setBackgroundColor( 0, 255, 0 )
+	love.graphics.setBackgroundColor( 0, 0, 25 )
 	player.image = love.graphics.newImage("assets/player.png")
 	constBullet.image = love.graphics.newImage("assets/bullet.png")
-	print(table.getn(bullets))
-	print("123")
 end
 
 -- Increase the size of the rectangle every frame.
 function love.update(delta_time)
     handleInput(delta_time)
+    updateBullets()
+    updateEnemies()
+    updatePowerUps()
 end
  
 -- Draw a coloured rectangle.
@@ -31,17 +32,11 @@ function love.draw()
 
 	love.graphics.draw(player.image, player.x, player.y, 0, 1, 1, player.width / 2, player.height / 2, 0, 0)
 	love.graphics.printf(table.getn(bullets), 20, 20, 50, "left" )
-	--love.graphics.printf(love.timer.getTime(), 20, 20, 50, "left" )
+	love.graphics.printf(love.timer.getFPS(), 20, 30, 50, "left" )
 	if table.getn(bullets) > 0 then
-		print(table.getn(bullets))
-		--for bullet in bullets do
-			-- print(bullet == nil)
-			-- print(constBullet.width)
-			-- print(constBullet.height)
-			-- print(bullet.x)
-			-- print(bullet.y)
-			-- love.graphics.draw(constBullet.image, bullet.x, bullet.y, 0, 1, 1, constBullet.width / 2, constBullet.height / 2, 0, 0)
-		--end
+		for i = 1, #bullets do
+			love.graphics.draw(constBullet.image, bullets[i].x, bullets[i].y, 0, 1, 1, constBullet.width / 2, constBullet.height / 2, 0, 0)
+		end
 	end
 end
 
