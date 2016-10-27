@@ -1,7 +1,7 @@
 require "variables"
 
 player = { x = 0, y = 0, width = 20, height = 20, image = nil, texture = nil }
-constBullet = { image = nil, width = 5, height = 5 }
+constBullet = { image = nil, width = 5, height = 5, movementSpeed = 900 }
 shootDelay = 0.4
 lastShot = 0
 enemies = {}
@@ -22,9 +22,9 @@ end
 -- Increase the size of the rectangle every frame.
 function love.update(delta_time)
     handleInput(delta_time)
-    updateBullets()
-    updateEnemies()
-    updatePowerUps()
+    updateBullets(delta_time)
+    updateEnemies(delta_time)
+    updatePowerUps(delta_time)
 end
  
 -- Draw a coloured rectangle.
@@ -34,7 +34,8 @@ function love.draw()
 	love.graphics.printf(table.getn(bullets), 20, 20, 50, "left" )
 	love.graphics.printf(love.timer.getFPS(), 20, 30, 50, "left" )
 	if table.getn(bullets) > 0 then
-		for i = 1, #bullets do
+		local bulletsSize = #bullets
+		for i = bulletsSize, 1, -1 do
 			love.graphics.draw(constBullet.image, bullets[i].x, bullets[i].y, 0, 1, 1, constBullet.width / 2, constBullet.height / 2, 0, 0)
 		end
 	end
@@ -76,4 +77,25 @@ function shoot()
 		table.insert(bullets, bullet)
 		lastShot = love.timer.getTime()
 	end
+end
+
+
+function updateBullets(delta_time)
+	local bulletsSize = #bullets
+	for i = bulletsSize, 1, -1 do
+		local y = bullets[i].y - (delta_time * movementSpeed)
+		if (y < 0) then
+			table.remove(bullets, i) 
+		else
+			bullets[i].y = y
+		end
+	end
+end
+
+function updateEnemies(delta_time)
+
+end
+
+function updatePowerUps(delta_time)
+
 end
