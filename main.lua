@@ -1,9 +1,9 @@
-require "variables"
+require "values"
 
-player = { x = 0, y = 0, width = 20, height = 20, image = nil, texture = nil }
-constBullet = { image = nil, width = 5, height = 5, movementSpeed = 900 }
+player = { x = 0, y = 0, size = 20, width = 20, height = 20, image = nil, texture = nil }
+constBullet = { image = nil, size = 5, width = 5, height = 5, movementSpeed = 900 }
 constEnemies = { enemy1 = nil, enemy2 = nil, enemy3 = nil }
-constEnemies.enemy1 = { image = nil, width = 20, height = 20, movementSpeed = 450 }
+constEnemies.enemy1 = { image = nil, size = 20, width = 20, height = 20, movementSpeed = 450 }
 shootDelay = 0.4
 lastShot = 0
 enemies = {}
@@ -15,6 +15,7 @@ love.window.setMode( screen.width, screen.height, { resizable = false, vsync = t
 love.window.setTitle( "title" )
 up = 1;
 down = -1;
+collisions = 0;
 
 
 function love.load()
@@ -36,6 +37,7 @@ function love.draw()
 	love.graphics.draw(player.image, player.x, player.y, 0, 1, 1, player.width / 2, player.height / 2, 0, 0)
 	love.graphics.printf(table.getn(bullets), 20, 20, 50, "left" )
 	love.graphics.printf(love.timer.getFPS(), 20, 30, 50, "left" )
+	love.graphics.printf(collisions, 20, 40, 50, "left" )
 	local bulletsSize = #bullets
 	for i = bulletsSize, 1, -1 do
 		love.graphics.draw(constBullet.image, bullets[i].x, bullets[i].y, 0, 1, 1, constBullet.width / 2, constBullet.height / 2, 0, 0)
@@ -85,19 +87,28 @@ end
 
 
 function updateBullets(delta_time)
-	local bulletsSize = #bullets -- øhh
-	local enemiesSize = #enemies -- øhh
-
-	for i = bulletsSize, 1, -1 do
+	for i = #bullets, 1, -1 do
+		local hit = false;
+		local playerCollision = false;
 		local y = bullets[i].y - (delta_time * movementSpeed * 1.5) * bullets[i].direction;
-		local playerCollision =	checkBulletCollision(player, bullet[i])
-		if (y < 0) then
+		playerCollision = checkBulletCollision(player, bullets[i])
+		if (y < 0) then -- reverse direction if top hit
 			bullets[i].direction = down;
+		elseif (y > screen.height) then -- remove if below bottom
+			table.remove(bullets, i)
 		else
 			bullets[i].y = y
 		end
-		for i = enemiesSize, 1, -1 do
-			checkCollision(enemies[i], bullet[i])
+		if (not playerCollision) then
+			for j = #enemies, 1, -1 do
+				hit = checkCollision(enemies[j], bullets[i])
+				if (hit) then
+					table.remove(enemies, j)
+				end
+			end
+		end
+		if (playerCollision or hit) then
+			table.remove(bullets, i)
 		end
 	end
 end
@@ -110,8 +121,10 @@ function updatePowerUps(delta_time)
 
 end
 
-function checkBulletCollision(this, bullet) -- other is usually smaller than this, så check if other is inside
-	if (bullet.x > this.x and this.size + this.x > constBullet.width + bullet.x) then
-
+function checkBulletCollision(this, bullet) -- oh geez
+	if ((this.x < bullet.x and this.x + this.size > bullet.x) or (this.x < bullet.x + constBullet.size and this.x + this.size > bullet.x + constBullet.size)) then
+		if (((this.y < bullet.y and this.y + this.size > bullet.y) or (this.y < bullet.y + constBullet.size and this.y + this.size > bullet.y + constBullet.size))) then
+			return true;
+		end
 	end
 end
