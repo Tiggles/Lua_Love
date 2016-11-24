@@ -1,30 +1,31 @@
-require "values"
+require("values")
 
-player = { x = 0, y = 0, size = 20, width = 20, height = 20, image = nil, texture = nil, shootDelay = 0.4, lastShot = 0 }
-constBullet = { image = nil, size = 5, width = 5, height = 5, movementSpeed = 900 }
+
+screen = { width = 1440, height = 900, flags = nil}
+player = { x = screen.width / 2, y = screen.height - 20, size = 20, width = 20, height = 20, image = nil, texture = nil, shootDelay = 0.4, lastShot = 0, movementSpeed = 500 }
+constBullet = { image = nil, size = 5, width = 5, height = 5, movementSpeed = 500 }
 
 constEnemies = { enemy1 = nil, enemy2 = nil, enemy3 = nil }
 
-constEnemies.enemy1 = { image = nil, size = 20, width = 20, height = 20, movementSpeed = 450, shootDelay = 1.2}
+constEnemies.enemy1 = { image = nil, size = 20, width = 20, height = 20, movementSpeed = 250, shootDelay = 1.2}
 
 lastEnemy = 0
-enemyDelay = 5
+enemyDelay = 3
 enemiesC = 0
 enemies = {}
 bullets = {}
 powerUps = {}
 startingTime = love.timer.getTime()
-movementSpeed = 500
-screen = { width = 1440, height = 900, flags = nil}
-love.window.setMode( screen.width, screen.height, { resizable = false, vsync = true, minwidth = 800, minheight=600, fullscreen=true })
+love.window.setMode( screen.width, screen.height, { resizable = false, vsync = true, minwidth = 800, minheight=600, fullscreen=false })
 love.window.setTitle( "Generic Space Shooter" )
 up = 1;
 down = -1;
 collisions = 0;
+acceleration = { speedX = 0, speedY = 0, max = 30, min = 30, delta = 20.0 }
 
 
 function love.load()
-	love.graphics.setBackgroundColor( 155, 155, 25 ) -- 0, 0, 25
+	love.graphics.setBackgroundColor( 0, 0, 25 ) -- 0, 0, 25
 	player.image = love.graphics.newImage("assets/player.png")
 	constBullet.image = love.graphics.newImage("assets/bullet.png")
 	constEnemies.enemy1.image = love.graphics.newImage("assets/enemy1.png")
@@ -42,6 +43,7 @@ function love.draw()
 	love.graphics.printf(table.getn(bullets), 20, 20, 50, "left" )
 	love.graphics.printf(love.timer.getFPS(), 20, 30, 50, "left" )
 	love.graphics.printf(#enemies, 20, 40, 50, "left" )
+	
 	for i = #enemies, 1, -1 do
 		if (enemies[i].type == 1) then
 			love.graphics.draw(constEnemies.enemy1.image, enemies[i].x, enemies[i].y, 0, 1, 1, enemies[i].size / 2, enemies[i].size / 2, 0, 0)
@@ -54,20 +56,22 @@ end
 
 function handleInput(delta_time)
 
-	local movementY = 0
-	local movementX = 0
-	
-	if love.keyboard.isDown("up") then
-	    movementY = -delta_time * movementSpeed
-	end
-	if love.keyboard.isDown("down") then
-		movementY = movementY + delta_time * movementSpeed
-	end
+	local leftMovement = 0.0
+	local rightMovement = 0.0
+
 	if love.keyboard.isDown("left") then
-	    movementX = -delta_time * movementSpeed
+		local accl = acceleration.speedX - acceleration.delta * delta_time
+		leftMovement = math.min(accl, acceleration.min)
+	else
+		local accl = acceleration.speedX + acceleration.delta * delta_time
+		leftMovement = math.min(accl, 0)
 	end
 	if love.keyboard.isDown("right") then
-	    movementX = movementX + delta_time * movementSpeed
+		local accl = acceleration.speedX + acceleration.delta * delta_time
+		rightMovement = math.min(accl, acceleration.max)
+	else
+		local accl = acceleration.speedX - acceleration.delta * delta_time
+		rightMovement = math.max(accl, 0)
 	end
 	if love.keyboard.isDown("escape") then
 		love.event.quit();
@@ -79,16 +83,20 @@ function handleInput(delta_time)
 		love.event.quit("restart")
 	end
 
-	player.x = math.min(math.max(player.x + movementX, 0 + player.width / 2), screen.width - player.width / 2)
-	player.y = math.min(math.max(player.y + movementY, 0 + player.height / 2), screen.height - player.height / 2)
+	love.graphics.printf(leftMovement, 20, 50, 50, "left" )
+	love.graphics.printf(rightMovement, 20, 60, 50, "left" )
+	acceleration.speedX = leftMovement + rightMovement
 
+	player.x = math.min(math.max(player.x + acceleration.speedX, 0 + player.width / 2), screen.width - player.width / 2)
+	player.y = math.min(math.max(player.y + acceleration.speedY, 0 + player.height / 2), screen.height - player.height / 2)
 end
 
 function shoot(entity, isPlayer)
 	local canShoot = (love.timer.getTime() - entity.lastShot) > entity.shootDelay
 	if (canShoot) then
 		local direction = (isPlayer and up or down)
-		bullet = { x = entity.x, y = entity.y - 30, direction = up }
+		local deltaY = (isPlayer and -30 or 30)
+		bullet = { x = entity.x, y = entity.y + deltaY, direction = direction }
 		table.insert(bullets, bullet)
 		entity.lastShot = love.timer.getTime()
 	end
@@ -100,7 +108,7 @@ function updateBullets(delta_time)
 		local hit = false;
 		local playerCollision = false;
 		local bulletRemoved
-		local y = bullets[i].y - (delta_time * movementSpeed * 1.5) * bullets[i].direction;
+		local y = bullets[i].y - (delta_time * constBullet.movementSpeed * 1.5) * bullets[i].direction;
 		playerCollision = checkBulletCollision(player, bullets[i])
 		if (y < 0) then -- reverse direction if top hit
 			bullets[i].direction = down;
@@ -126,7 +134,7 @@ end
 
 function updateEnemies(delta_time)
 	if (lastEnemy + enemyDelay < love.timer.getTime() and math.random() > 0.20) then
-		createEnemy()
+		createEnemy(1)
 		lastEnemy = love.timer.getTime()
 	end
 	for i = #enemies, 1, -1 do
@@ -134,7 +142,7 @@ function updateEnemies(delta_time)
 		if (canShoot and math.random() > 0.10) then
 			shoot(enemies[i], false)
 		end
-		enemies[i].y = enemies[i].y + delta_time * movementSpeed
+		enemies[i].y = enemies[i].y + delta_time * constEnemies.enemy1.movementSpeed
 		local hit = checkEnemyCollision(player, enemies[i])
 		if (hit or enemies[i].y > screen.height) then
 			table.remove(enemies, i)
@@ -153,22 +161,22 @@ function checkPowerupCollision(this, powerup)
 end
 
 function checkEnemyCollision(this, enemy)
-	if ( math.abs((this.x + this.size) / 2 - (enemy.x + enemy.size) / 2) < math.max(enemy.size/2, this.size) ) then
-		if ( math.abs((this.y + this.size) / 2 - (enemy.y + enemy.size) / 2) < math.max(enemy.size/2, this.size) ) then
+	if ( math.abs((this.x + this.size) / 2 - (enemy.x + enemy.size) / 2) < math.max(enemy.size/2, this.size / 2) ) then
+		if ( math.abs((this.y + this.size) / 2 - (enemy.y + enemy.size) / 2) < math.max(enemy.size/2, this.size / 2) ) then
 			return true
 		end
 	end
 end
 
-function checkBulletCollision(this, bullet)
-	if ( math.abs((this.x + this.size) / 2 - (bullet.x + constBullet.size) / 2) < math.max(constBullet.size/2, this.size) ) then
-		if ( math.abs((this.y + this.size) / 2 - (bullet.y + constBullet.size) / 2) < math.max(constBullet.size/2, this.size) ) then
+--[[function checkBulletCollision(this, bullet)
+	if ( math.abs((this.x + this.size) / 2 - (bullet.x + constBullet.size) / 2) < math.max(constBullet.size/2, this.size / 2) ) then
+		if ( math.abs((this.y + this.size) / 2 - (bullet.y + constBullet.size) / 2) < math.max(constBullet.size/2, this.size / 2) ) then
 			return true
 		end
 	end
-end
+end]]--
 
---[[function checkBulletCollision(this, bullet) --  oh geez
+function checkBulletCollision(this, bullet) --  oh geez
 	if ((this.x < bullet.x and this.x + this.size > bullet.x) 
 	or (this.x < bullet.x + constBullet.size and this.x + this.size > bullet.x + constBullet.size)) then
 		if (((this.y < bullet.y and this.y + this.size > bullet.y)
@@ -176,8 +184,12 @@ end
 			return true;
 		end
 	end
-end--]]
+end
 
-function createEnemy()
-	table.insert(enemies, { x = math.random(0, screen.width), shootDelay = 1.2, lastShot = 0, y = 0, health = 3, type = 1, damage = 5, size = 20})
+function createEnemy(type)
+	if (type == 1) then
+		table.insert(enemies, { x = math.random(0, screen.width), shootDelay = 0.8, lastShot = 0, y = 0, health = 3, type = 1, damage = 5, size = 20})
+	elseif (type == 2) then
+		table.insert(enemies, {})
+	end
 end
