@@ -21,7 +21,7 @@ love.window.setTitle( "Generic Space Shooter" )
 up = 1;
 down = -1;
 collisions = 0;
-acceleration = { speedX = 0, speedY = 0, max = 30, min = 30, delta = 20.0 }
+acceleration = { speedX = 0, speedY = 0, max = 20, min = 20, delta = 10 }
 
 
 function love.load()
@@ -56,15 +56,15 @@ end
 
 function handleInput(delta_time)
 
-	if love.keyboard.isDown("left") then
+	if love.keyboard.isDown("left") and not love.keyboard.isDown("right") then
 		acceleration.speedX = acceleration.speedX - acceleration.delta * delta_time
 	elseif acceleration.speedX < 0 then 
-		acceleration.speedX = math.min(acceleration.speedX + acceleration.delta * delta_time, 0)
+		acceleration.speedX = math.min(acceleration.speedX + (acceleration.delta * delta_time) * 1.5, 0)
 	end
-	if love.keyboard.isDown("right") then
-		acceleration.speedX = acceleration.speedX + acceleration.delta * delta_time
+	if love.keyboard.isDown("right") and not love.keyboard.isDown("left") then
+		acceleration.speedX = acceleration.speedX + (acceleration.delta * delta_time) 
 	elseif acceleration.speedX > 0 then 
-		acceleration.speedX = math.max(acceleration.speedX - acceleration.delta * delta_time, 0)
+		acceleration.speedX = math.max(acceleration.speedX - (acceleration.delta * delta_time) * 1.5, 0)
 	end
 
 	if love.keyboard.isDown("escape") then
