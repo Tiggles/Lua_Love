@@ -56,23 +56,17 @@ end
 
 function handleInput(delta_time)
 
-	local leftMovement = 0.0
-	local rightMovement = 0.0
-
 	if love.keyboard.isDown("left") then
-		local accl = acceleration.speedX - acceleration.delta * delta_time
-		leftMovement = math.min(accl, acceleration.min)
-	else
-		local accl = acceleration.speedX + acceleration.delta * delta_time
-		leftMovement = math.min(accl, 0)
+		acceleration.speedX = acceleration.speedX - acceleration.delta * delta_time
+	elseif acceleration.speedX < 0 then 
+		acceleration.speedX = math.min(acceleration.speedX + acceleration.delta * delta_time, 0)
 	end
 	if love.keyboard.isDown("right") then
-		local accl = acceleration.speedX + acceleration.delta * delta_time
-		rightMovement = math.min(accl, acceleration.max)
-	else
-		local accl = acceleration.speedX - acceleration.delta * delta_time
-		rightMovement = math.max(accl, 0)
+		acceleration.speedX = acceleration.speedX + acceleration.delta * delta_time
+	elseif acceleration.speedX > 0 then 
+		acceleration.speedX = math.max(acceleration.speedX - acceleration.delta * delta_time, 0)
 	end
+
 	if love.keyboard.isDown("escape") then
 		love.event.quit();
 	end
@@ -83,12 +77,8 @@ function handleInput(delta_time)
 		love.event.quit("restart")
 	end
 
-	love.graphics.printf(leftMovement, 20, 50, 50, "left" )
-	love.graphics.printf(rightMovement, 20, 60, 50, "left" )
-	acceleration.speedX = leftMovement + rightMovement
-
 	player.x = math.min(math.max(player.x + acceleration.speedX, 0 + player.width / 2), screen.width - player.width / 2)
-	player.y = math.min(math.max(player.y + acceleration.speedY, 0 + player.height / 2), screen.height - player.height / 2)
+	--player.y = math.min(math.max(player.y + acceleration.speedY, 0 + player.height / 2), screen.height - player.height / 2)
 end
 
 function shoot(entity, isPlayer)
